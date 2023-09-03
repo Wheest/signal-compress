@@ -1,0 +1,26 @@
+FROM python:3
+
+# Set the working directory
+WORKDIR /app
+
+# Clone and build sqlcipher
+RUN git clone --depth 1 --branch v4.5.2 https://github.com/sqlcipher/sqlcipher
+RUN cd sqlcipher \
+    && ./configure --enable-tempstore=yes CFLAGS="-DSQLITE_HAS_CODEC" \
+    LDFLAGS="-lcrypto -lsqlite3" \
+    && make && make install \
+    && ldconfig
+
+RUN pip3 install pysqlcipher3 requests
+
+# Mount the python files
+VOLUME /app/
+
+# Mount the required config files
+VOLUME /root/.config/Signal/sql/db.sqlite
+VOLUME /root/.config/Signal/config.json
+
+RUN apt-get update -y &&  apt-get install -y iputils-ping
+
+# Execute the script on container start
+CMD ["python3", "extract.py"]

@@ -1,0 +1,35 @@
+version: "3.8"
+networks:
+  restricted:
+    internal: true
+services:
+  llama:
+    image: ghcr.io/ggerganov/llama.cpp:full
+    command: "--server -m /models/$TARGET_MODEL/ggml-model-q4_0.gguf -c $SEQ_LEN -ngl 43 -mg 1 --port 9090 --host 0.0.0.0"
+    volumes:
+      - ${MODELS_PATH}:/models/
+    ports:
+      - "9090:9090"
+    networks:
+      - restricted
+  signal:
+    build:
+      dockerfile: docker/Dockerfile.signal
+    volumes:
+      - ./extract.py:/app/extract.py
+      - type: bind
+        source: ./output/
+        target: /output/
+        read_only: false
+      - type: bind
+        source: ${SIGNAL_DB_PATH}
+        target: /root/.config/Signal/sql/db.sqlite
+        read_only: true
+      - type: bind
+        source: ${SIGNAL_CONFIG_PATH}
+        target: /root/.config/Signal/config.json:ro
+        read_only: true
+    depends_on:
+      - llama
+    networks:
+      - restricted
